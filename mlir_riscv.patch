@@ -1,0 +1,132 @@
+diff --git a/mlir/CMakeLists.txt b/mlir/CMakeLists.txt
+index c6d44908a111..338c0969b13e 100644
+--- a/mlir/CMakeLists.txt
++++ b/mlir/CMakeLists.txt
+@@ -109,7 +109,7 @@ set_target_properties(mlir-doc PROPERTIES FOLDER "MLIR/Docs")
+ if(${LLVM_NATIVE_ARCH} IN_LIST LLVM_TARGETS_TO_BUILD)
+   set(MLIR_ENABLE_EXECUTION_ENGINE 1)
+ else()
+-  set(MLIR_ENABLE_EXECUTION_ENGINE 0)
++  set(MLIR_ENABLE_EXECUTION_ENGINE 1)
+ endif()
+ 
+ # Build the ROCm conversions and run according tests if the AMDGPU backend
+diff --git a/mlir/include/mlir/ExecutionEngine/CRunnerUtils.h b/mlir/include/mlir/ExecutionEngine/CRunnerUtils.h
+index 812f719e723e..da751c6b3f3c 100644
+--- a/mlir/include/mlir/ExecutionEngine/CRunnerUtils.h
++++ b/mlir/include/mlir/ExecutionEngine/CRunnerUtils.h
+@@ -38,6 +38,7 @@
+ #include <initializer_list>
+ #include <vector>
+ 
++
+ //===----------------------------------------------------------------------===//
+ // Codegen-compatible structures for Vector type.
+ //===----------------------------------------------------------------------===//
+diff --git a/mlir/lib/ExecutionEngine/CMakeLists.txt b/mlir/lib/ExecutionEngine/CMakeLists.txt
+index a091944b9ee7..aeae1861ce99 100644
+--- a/mlir/lib/ExecutionEngine/CMakeLists.txt
++++ b/mlir/lib/ExecutionEngine/CMakeLists.txt
+@@ -97,6 +97,90 @@ add_mlir_library(MLIRExecutionEngine
+   MLIRTargetLLVMIRExport
+   )
+ 
++#I have added thise lines LINUS 
++add_mlir_library(MLIRFloat16Utils
++  Float16bits.cpp
++  
++  EXCLUDE_FROM_LIBMLIR
++
++  ADDITIONAL_HEADER_DIRS
++  ${MLIR_MAIN_INCLUDE_DIR}/mlir/ExecutionEngine
++
++  DEPENDS
++  intrinsics_gen
++
++  LINK_COMPONENTS
++  Core
++  Coroutines
++  )
++
++add_mlir_library(MLIRCRunnerUtils
++  
++  CRunnerUtils.cpp
++  SparseTensorRuntime.cpp
++
++  EXCLUDE_FROM_LIBMLIR
++
++  ADDITIONAL_HEADER_DIRS
++  ${MLIR_MAIN_INCLUDE_DIR}/mlir/ExecutionEngine
++  ${MLIR_MAIN_INCLUDE_DIR}/mlir/ExecutionEngine/SparseTensor
++
++  DEPENDS
++  intrinsics_gen
++
++  LINK_COMPONENTS
++  Core
++  Coroutines
++
++  LINK_LIBS PUBLIC
++  MLIRFloat16Utils
++  MLIRSparseTensorEnums
++  MLIRSparseTensorRuntime
++  )
++
++mlir_check_all_link_libraries(MLIRCRunnerUtils)
++
++add_mlir_library(MLIRRunnerUtils
++
++  RunnerUtils.cpp
++
++  EXCLUDE_FROM_LIBMLIR
++
++  ADDITIONAL_HEADER_DIRS
++  ${MLIR_MAIN_INCLUDE_DIR}/mlir/ExecutionEngine
++
++  DEPENDS
++  intrinsics_gen
++
++  LINK_COMPONENTS
++  Core
++  Coroutines
++
++  LINK_LIBS PUBLIC
++  MLIRFloat16Utils
++  )
++
++add_mlir_library(MLIRAsyncRuntime
++
++  AsyncRuntime.cpp
++
++  EXCLUDE_FROM_LIBMLIR
++
++  ADDITIONAL_HEADER_DIRS
++  ${MLIR_MAIN_INCLUDE_DIR}/mlir/ExecutionEngine
++
++  DEPENDS
++  intrinsics_gen
++
++  LINK_COMPONENTS
++  Core
++  Coroutines
++
++  LINK_LIBS PUBLIC
++  ${LLVM_PTHREAD_LIB}
++)
++# here i srtooped adding lines
++
+ if(LLVM_BUILD_LLVM_DYLIB)
+   # Build a shared library for the execution engine. Some downstream projects
+   # use this library to build their own CPU runners while preserving dynamic
+@@ -145,8 +229,11 @@ add_mlir_library(MLIRJitRunner
+   MLIRTargetLLVMIRExport
+   MLIRTransforms
+   MLIRSupport
++  
+ )
+ 
++
++
+ # When -fPIC is not provided, shared libraries cannot be built if it links against
+ # non-PIC code.
+ if(LLVM_ENABLE_PIC)
